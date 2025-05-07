@@ -63,8 +63,8 @@
 
 <owl:NamedIndividual rdf:about="#roadsec2">
   <rdf:type rdf:resource="#RoadSection"/>
-  <adjacentTo rdf:resource="#roadsec1"/>
   <adjacentTo rdf:resource="#roadsec3"/>
+  <adjacentTo rdf:resource="#roadsec1"/>
   <isClear rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">false</isClear>
 </owl:NamedIndividual>
 
@@ -135,9 +135,9 @@
       <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
     </swrl:AtomList>
   </swrl:head>
+  <swrl2:isRuleEnabled rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</swrl2:isRuleEnabled>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Checks if bulldozer can clear</rdfs:comment>
   <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">CannotClearRule</rdfs:label>
-  <swrl2:isRuleEnabled rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</swrl2:isRuleEnabled>
 </swrl:Imp>
 
 <swrl:Imp>
@@ -186,9 +186,9 @@
       <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
     </swrl:AtomList>
   </swrl:head>
+  <swrl2:isRuleEnabled rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</swrl2:isRuleEnabled>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Checks if bulldozer can clear</rdfs:comment>
   <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">CanClearRule</rdfs:label>
-  <swrl2:isRuleEnabled rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</swrl2:isRuleEnabled>
 </swrl:Imp>
 
 <swrl:Imp>
@@ -237,9 +237,9 @@
       <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
     </swrl:AtomList>
   </swrl:head>
+  <swrl2:isRuleEnabled rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</swrl2:isRuleEnabled>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Checks if agent can move</rdfs:comment>
   <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">CanMoveRule</rdfs:label>
-  <swrl2:isRuleEnabled rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</swrl2:isRuleEnabled>
 </swrl:Imp>
 
 <swrl:Imp>
@@ -288,9 +288,9 @@
       <rdf:rest rdf:resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#nil"/>
     </swrl:AtomList>
   </swrl:head>
+  <swrl2:isRuleEnabled rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</swrl2:isRuleEnabled>
   <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Checks if agent cannot move</rdfs:comment>
   <rdfs:label rdf:datatype="http://www.w3.org/2001/XMLSchema#string">CannotMoveRule</rdfs:label>
-  <swrl2:isRuleEnabled rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</swrl2:isRuleEnabled>
 </swrl:Imp>
 
 

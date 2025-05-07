@@ -16,6 +16,10 @@ RUN apt-get update && apt-get install -y \
     bison \
     && apt-get clean
 
+COPY road_complexity_analysis.py /tools/
+RUN pip install --no-cache-dir pandas matplotlib
+    
+
 # Set working directory
 WORKDIR /opt
 
