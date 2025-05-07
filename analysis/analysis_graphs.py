@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Load the dataset
-df = pd.read_csv("road_metrics.csv").sort_values("segments")
+# df = pd.read_csv("road_metrics.csv").sort_values("segments")
+df = pd.read_csv("exploration_metrics.csv").sort_values("segments")
 
 # 1. Plan length & nodes (LOG X only for intuitive size scaling)
 plt.figure()
