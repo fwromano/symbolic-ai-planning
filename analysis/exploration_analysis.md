@@ -1,72 +1,72 @@
-# Exploration-Domain Empirical Complexity Report  
+# Exploration-Domain Empirical Complexity Report
+
 *Planner – Fast Downward (`astar(lmcut())`), Ubuntu 22.04, image `fast-downward`*
 
 ```bash
-# run exploration profiling
+# reproduce the experiment
 python docker/exploration_complexity_analysis.py explorationDomain.pddl problems/exploration \
        --docker-image fast-downward --mount "$(pwd)"
-````
+```
 
 ---
 
-## 1 Benchmark Overview
+## 1 Benchmark Overview
 
-Two robots (`B`, `G`) must **observe** every cell in an *n×n* grid and both end at the far corner.
-We measured optimal cost planning (minimize total-cost) on 3×3, 4×4 and 5×5 grids.
-
----
-
-## 2 Dataset
-
-| Problem            | Grid Size | Nodes Expanded | Runtime (s) |
-| ------------------ | --------: | -------------: | ----------: |
-| `explore-3x3.pddl` |       3×3 |            241 |        0.37 |
-| `explore-4x4.pddl` |       4×4 |          1 087 |        0.40 |
-| `explore-5x5.pddl` |       5×5 |      1 790 262 |      114.66 |
-| `explore-6x6.pddl` |       6x6 |      --------- | didnt finish|
+Two robots (`B`, `G`) must **observe every cell** in an *n × n* grid and then rendezvous in the opposite corner. We solved the tasks *optimally* for n = 2 … 5.
 
 ---
 
-## 3 Theoretical Expectations
+## 2 Dataset
 
-* **State space**: each of the 2 robots can be in any of *n²* cells, and each cell can be explored or not → O((n²·2)·2^{n²}) configurations.
-* **Worst-case search**: exponential in number of cells, at least O(2^{n²}).
-
-This domain is essentially a two-agent cover problem; optimal search is **exponential**.
-
----
-
-## 4 Empirical Complexity
-
-| Grid | Cells (n²) |     Nodes | Runtime (s) |
-| ---: | ---------: | --------: | ----------: |
-|  3×3 |          9 |       241 |        0.37 |
-|  4×4 |         16 |     1 087 |        0.40 |
-|  5×5 |         25 | 1 790 262 |      114.66 |
-
-* **3→4**: +7 cells yielded \~4.5× more nodes, runtime flat (fixed overhead dominates small N).
-* **4→5**: +9 cells yielded \~1 650× nodes and **285×** slower runtime.
+| Problem            |  Grid | Nodes Expanded | Runtime (s) |
+| ------------------ | ----: | -------------: | ----------: |
+| `explore-2x2.pddl` | 2 × 2 |             10 |    **0.47** |
+| `explore-3x3.pddl` | 3 × 3 |            117 |    **0.33** |
+| `explore-4x4.pddl` | 4 × 4 |        16  857 |    **0.87** |
+| `explore-5x5.pddl` | 5 × 5 |       729  893 |   **53.47** |
+| `explore-6x6.pddl` | 6 × 6 |              — | (timed out) |
 
 ---
 
-## 5 Visual Sketch
+## 3 Theoretical Growth
 
-With only three points, the plot already shows steep curvature:
-
-![plot](graphs/output.png)
+Joint state = ⟨pos<sub>B</sub>, pos<sub>G</sub>, explored-mask⟩ ⇒ **O(n² · n² · 2^{n²}) ≈ O(2^{n²})**. Optimal search is therefore exponential in cell count.
 
 ---
 
-## 6 Interpretation
+## 4 Empirical Complexity
 
-1. **Exponential blow-up**: Adding a few cells causes massive growth in expanded states.
-2. **Heuristic limitations**: `lmcut()` helps cost-optimality but can’t prune the exponential combinations of “which cells remain unexplored.”
-3. **Practical limit**: 5×5 already takes \~2 minutes; 6×6 will be effectively intractable without heuristic enhancements or decomposition.
+| Grid | Cells |     Nodes | Time (s) |
+| ---: | ----: | --------: | -------: |
+|  2×2 |     4 | 1.0 × 10¹ |     0.47 |
+|  3×3 |     9 | 1.2 × 10² |     0.33 |
+|  4×4 |    16 | 1.7 × 10⁴ |     0.87 |
+|  5×5 |    25 | 7.3 × 10⁵ |    53.47 |
+
+Node-growth factors: **× 11.7**, **× 144**, **× 43.3** as we step through 2→3→4→5. Runtime stays sub-second until the 5×5 explosion (× 61).
 
 ---
 
-## 7 Next Steps
+## 5 Visual Evidence
 
-* **Relax optimality**: switch to satisficing search (`lazy_greedy(ff())`) to get quick but suboptimal coverage plans.
-* **Divide & conquer**: partition the grid into regions and solve sequentially.
+| Nodes expanded vs grid                                | Runtime vs grid                                           |
+| ----------------------------------------------------- | --------------------------------------------------------- |
+| ![Nodes vs grid](graphs/nodeVgrid.png) | ![Runtime vs grid](graphs/timeVgrid.png) |
 
+Both X axes are log-scaled; the almost-linear lines on the log plot confirm near-exponential blow-up.
+
+---
+
+## 6 Interpretation
+
+1. **Exponential blow-up:** empirical curves track the theoretical O(2^{n²}) growth.
+2. **Heuristic limits:** `lmcut()` trims cost but cannot bypass the combinatorial “which cells remain” explosion.
+3. **Practical ceiling:** 5×5 already \~1 min; 6×6 stalls—further scaling demands new tactics.
+
+---
+
+## 7 Next Steps
+
+* **Relax optimality:** switch to satisficing search (`lazy_greedy(ff())` or `astar(add())`) for sub-second plans.
+* **Spatial decomposition:** partition the grid, solve sub-grids, then merge.
+* **Learned heuristics / pattern DBs:** encode partial-cover distances to guide search.

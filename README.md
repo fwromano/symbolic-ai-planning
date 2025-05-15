@@ -24,3 +24,5 @@ E1 files: `explorationDomain.pddl` and `explorationProblem.pddl`
 3. Install dependencies: `pip3 install -r requirements.txt`  
 
 4. Run planner: `./roadPlanner.py`
+
+note: exploration sampling run with seed 42 

@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """
 exploration_problem_gen.py
-Generate grid‑style PDDL problems for the 'exploration' domain.
+Generate solvable exploration-grid PDDL problems.
+
+We ensure that **every** location l has at least one robot r
+such that (can-traverse r l) AND (can-observe r l).
 
 Distribution rules (per grid):
-    * ~10 % locations have HIGH traverse cost (=5) for both robots.
-    * ~10 % locations are traversable by only ONE robot.
-    * ~10 % locations are observable by only ONE robot.
+    * ~10 % locations have HIGH traverse cost (=5) for both robots.
+    * ~10 % locations are traversable by only ONE robot.
+    * ~10 % locations are observable by only ONE robot.
 All other cells are easy (cost 1), traversable, and observable by both.
 
 Usage examples
@@ -21,129 +24,137 @@ import argparse, math, os, pathlib, random
 from itertools import product
 
 DOMAIN_NAME = "exploration"
-ROBOTS      = ["B", "G"]            # two robots, names fixed
+ROBOTS      = ["B", "G"]
 HIGH_COST   = 5
 EASY_COST   = 1
 
-def rng(shuffle_pool, k):
-    """Return k items sampled without replacement (k may be 0)."""
-    return random.sample(shuffle_pool, k) if k else []
+def cell_name(r, c):
+    return f"l{r}{c}"
 
-# ---------------------------------------------------------------------
-def cell_name(x, y):
-    return f"l{x}{y}"          # e.g. l23 is row2‑col3 (1‑based)
-
-def grid_locations(n):
+def grid_cells(n):
     return [cell_name(r, c) for r in range(1, n+1) for c in range(1, n+1)]
 
 def adjacency_pairs(n):
-    """4‑connected neighbours for n×n grid."""
     pairs = []
     for r in range(1, n+1):
         for c in range(1, n+1):
-            if r < n:  pairs.append((cell_name(r, c), cell_name(r+1, c)))
-            if c < n:  pairs.append((cell_name(r, c), cell_name(r, c+1)))
-    return pairs + [(b, a) for (a, b) in pairs]   # make bidirectional
+            here = cell_name(r, c)
+            if r < n: pairs.append((here, cell_name(r+1, c)))
+            if c < n: pairs.append((here, cell_name(r, c+1)))
+    # make bidirectional
+    return pairs + [(b,a) for (a,b) in pairs]
 
-# ---------------------------------------------------------------------
+def rng(pool, k):
+    return random.sample(pool, k) if k > 0 else []
+
 def problem_text(n, seed):
     random.seed(seed)
-    locs = grid_locations(n)
-    # choose special‑case sets
-    k_hard  = math.ceil(len(locs) / 10)            # 10 %
-    hard_cells  = rng(locs, k_hard)
+    cells = grid_cells(n)
 
-    remaining = [l for l in locs if l not in hard_cells]
-    k_untrv   = math.ceil(len(locs) / 10)
-    untrv_cells = rng(remaining, k_untrv)
+    # 10% high-cost
+    k = math.ceil(len(cells)/10)
+    hard   = set(rng(cells, k))
 
-    remaining = [l for l in remaining if l not in untrv_cells]
-    k_unobs   = math.ceil(len(locs) / 10)
-    unobs_cells = rng(remaining, k_unobs)
+    # 10% solo-traverse
+    rem    = [l for l in cells if l not in hard]
+    solo_trav = set(rng(rem, k))
 
-    # Build PDDL sections ------------------------------------------------
-    obj_line = " ".join(ROBOTS) + " - robot\n        " + " ".join(locs) + " - location"
+    # 10% solo-observe
+    rem2   = [l for l in rem if l not in solo_trav]
+    solo_obs  = set(rng(rem2, k))
 
-    init = []
+    # build initial capability maps
+    trav = { (r,l): True for r in ROBOTS for l in cells }
+    obs  = { (r,l): True for r in ROBOTS for l in cells }
 
-    # start positions: both at top‑left
-    init += [f"(at B {cell_name(1,1)})", f"(at G {cell_name(1,1)})"]
+    # apply solo-traverse
+    for l in solo_trav:
+        # pick which robot keeps traverse
+        keeper = random.choice(ROBOTS)
+        for r in ROBOTS:
+            trav[(r,l)] = (r == keeper)
+
+    # apply solo-observe
+    for l in solo_obs:
+        keeper = random.choice(ROBOTS)
+        for r in ROBOTS:
+            obs[(r,l)] = (r == keeper)
+
+    # enforce coupling: each cell must have some r with both trav & obs
+    for l in cells:
+        if not any(trav[(r,l)] and obs[(r,l)] for r in ROBOTS):
+            # randomly grant both rights to one robot
+            r = random.choice(ROBOTS)
+            trav[(r,l)] = True
+            obs[(r,l)]  = True
+
+    # now render PDDL ---------------------------------------------------
+    obj_line = " ".join(ROBOTS) + " - robot\n        " + \
+               " ".join(cells) + " - location"
+
+    init_atoms = []
+    # start positions
+    init_atoms += [f"(at B l11)", f"(at G l11)"]
 
     # adjacency
-    init += [f"(adjacent {a} {b})" for (a,b) in adjacency_pairs(n)]
+    for a,b in adjacency_pairs(n):
+        init_atoms.append(f"(adjacent {a} {b})")
 
-    # traversability
-    for l in locs:
-        if l in untrv_cells:
-            # only one robot (pick B if even hash, else G)
-            chosen = "B" if hash(l) % 2 == 0 else "G"
-            init.append(f"(can-traverse {chosen} {l})")
-        else:
-            for rob in ROBOTS:
-                init.append(f"(can-traverse {rob} {l})")
+    # capabilities
+    for l in cells:
+        for r in ROBOTS:
+            if trav[(r,l)]:
+                init_atoms.append(f"(can-traverse {r} {l})")
+            if obs[(r,l)]:
+                init_atoms.append(f"(can-observe {r} {l})")
 
-    # observation
-    for l in locs:
-        if l in unobs_cells:
-            chosen = "B" if hash(l) % 2 else "G"
-            init.append(f"(can-observe {chosen} {l})")
-        else:
-            for rob in ROBOTS:
-                init.append(f"(can-observe {rob} {l})")
+    # costs
+    for l in cells:
+        cost = HIGH_COST if l in hard else EASY_COST
+        for r in ROBOTS:
+            init_atoms.append(f"(= (traverse-cost {r} {l}) {cost})")
+    init_atoms.append("(= (total-cost) 0)")
 
-    # traverse‑cost
-    for l in locs:
-        cost = HIGH_COST if l in hard_cells else EASY_COST
-        for rob in ROBOTS:
-            init.append(f"(= (traverse-cost {rob} {l}) {cost})")
-    init.append("(= (total-cost) 0)")
+    # goal: explore all cells + both robots at bottom-right
+    last = cell_name(n,n)
+    goal_atoms = [f"(explored {l})" for l in cells] + [f"(at B {last})", f"(at G {last})"]
 
-    # goal: all cells explored + both robots at bottom‑right
-    last = cell_name(n, n)
-    goal_atoms = [f"(explored {l})" for l in locs] + [f"(at B {last})", f"(at G {last})"]
+    # pretty-print blocks
+    def block(atoms, indent=8):
+        return "\n" + " "*indent + "\n".join(atoms)
 
     return f"""(define (problem exp-{n}x{n})
     (:domain {DOMAIN_NAME})
 
-    (:objects
-        {obj_line}
-    )
-
-    (:init
-        {' '.join(init)}
-    )
-
-    (:goal (and
-        {' '.join(goal_atoms)}
-    ))
-
+    (:objects{block([obj_line],8)})
+    (:init{block(init_atoms,8)})
+    (:goal (and{block(goal_atoms,8)}))
     (:metric minimize (total-cost))
 )"""
 
-# ---------------------------------------------------------------------
 def sizes_from_args(args):
     if args.size:
         return [args.size]
-    lo, hi = args.range
-    return list(range(lo, hi+1))
+    return list(range(args.range[0], args.range[1]+1))
 
 def main():
     ap = argparse.ArgumentParser()
     grp = ap.add_mutually_exclusive_group(required=True)
-    grp.add_argument("--size", type=int, help="one grid size (e.g. 4)")
-    grp.add_argument("--range", nargs=2, type=int, metavar=("MIN", "MAX"),
-                     help="generate every square size in [MIN..MAX]")
-    ap.add_argument("--outdir", default=".", help="directory for *.pddl output")
-    ap.add_argument("--seed", type=int, default=0, help="random seed (default 0)")
+    grp.add_argument("--size",  type=int, nargs="?", help="single grid size")
+    grp.add_argument("--range", nargs=2, type=int, metavar=("MIN","MAX"))
+    ap.add_argument("--outdir", default=".", help="output directory")
+    ap.add_argument("--seed",   type=int, default=0, help="random seed")
     args = ap.parse_args()
 
-    pathlib.Path(args.outdir).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(args.outdir).mkdir(exist_ok=True, parents=True)
     for n in sizes_from_args(args):
         text = problem_text(n, seed=args.seed + n)
-        path = os.path.join(args.outdir, f"explore-{n}x{n}.pddl")
-        with open(path, "w") as f:
+        path = os.path.join(args.outdir, f"exp-{n}x{n}.pddl")
+        with open(path,"w") as f:
             f.write(text)
         print(f"Wrote {path}")
 
-if __name__ == "__main__":
+if __name__=="__main__":
     main()
+
+
