@@ -53,7 +53,7 @@ Node-growth factors: **× 11.7**, **× 144**, **× 43.3** as we step through 2�
 | ----------------------------------------------------- | --------------------------------------------------------- |
 | ![Nodes vs grid](graphs/nodeVgrid.png) | ![Runtime vs grid](graphs/timeVgrid.png) |
 
-Both X axes are log-scaled; the almost-linear lines on the log plot confirm near-exponential blow-up.
+Both Y axes are log-scaled; the almost-linear lines on the log plot confirm near-exponential blow-up.
 
 ---
 
