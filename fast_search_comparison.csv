@@ -1,0 +1,97 @@
+config,config_name,problem,size,plan_length,nodes_expanded,memory_mb,runtime_s,success,timeout
+optimal,A* with LM-cut (Optimal),exp-2x2.pddl,2,8.0,10.0,9.984375,0.4296293258666992,True,False
+optimal,A* with LM-cut (Optimal),exp-3x3.pddl,3,19.0,248.0,10.1171875,0.4386622905731201,True,False
+optimal,A* with LM-cut (Optimal),exp-4x4.pddl,4,34.0,9638.0,11.453125,0.8717789649963379,True,False
+optimal,A* with LM-cut (Optimal),exp-5x5.pddl,5,51.0,280821.0,59.9609375,31.53463125228882,True,False
+optimal,A* with LM-cut (Optimal),exp-6x6.pddl,6,,,,60.04513144493103,False,True
+optimal,A* with LM-cut (Optimal),exp-7x7.pddl,7,,,,60.004469871520996,False,True
+optimal,A* with LM-cut (Optimal),exp-8x8.pddl,8,,,,60.02556490898132,False,True
+optimal,A* with LM-cut (Optimal),exp-9x9.pddl,9,,,,60.00419068336487,False,True
+greedy_ff,Greedy Best-First (FF heuristic),exp-2x2.pddl,2,10.0,18.0,9.984375,0.5339431762695312,True,False
+greedy_ff,Greedy Best-First (FF heuristic),exp-3x3.pddl,3,21.0,37.0,9.984375,0.5298032760620117,True,False
+greedy_ff,Greedy Best-First (FF heuristic),exp-4x4.pddl,4,42.0,108.0,10.1171875,0.5216803550720215,True,False
+greedy_ff,Greedy Best-First (FF heuristic),exp-5x5.pddl,5,113.0,592.0,10.1171875,0.5543167591094971,True,False
+greedy_ff,Greedy Best-First (FF heuristic),exp-6x6.pddl,6,136.0,824.0,10.2421875,0.5644881725311279,True,False
+greedy_ff,Greedy Best-First (FF heuristic),exp-7x7.pddl,7,231.0,5244.0,10.90625,0.6961569786071777,True,False
+greedy_ff,Greedy Best-First (FF heuristic),exp-8x8.pddl,8,350.0,3549.0,11.04296875,0.7788801193237305,True,False
+greedy_ff,Greedy Best-First (FF heuristic),exp-9x9.pddl,9,459.0,25423.0,14.109375,1.8750529289245605,True,False
+lazy_greedy_ff,Lazy Greedy (FF heuristic),exp-2x2.pddl,2,10.0,36.0,9.984375,0.5481529235839844,True,False
+lazy_greedy_ff,Lazy Greedy (FF heuristic),exp-3x3.pddl,3,33.0,208.0,9.984375,0.5220165252685547,True,False
+lazy_greedy_ff,Lazy Greedy (FF heuristic),exp-4x4.pddl,4,42.0,275.0,10.1171875,0.515608549118042,True,False
+lazy_greedy_ff,Lazy Greedy (FF heuristic),exp-5x5.pddl,5,99.0,1515.0,10.11328125,0.5345034599304199,True,False
+lazy_greedy_ff,Lazy Greedy (FF heuristic),exp-6x6.pddl,6,140.0,1738.0,10.2421875,0.5946657657623291,True,False
+lazy_greedy_ff,Lazy Greedy (FF heuristic),exp-7x7.pddl,7,225.0,5819.0,10.91015625,0.6832396984100342,True,False
+lazy_greedy_ff,Lazy Greedy (FF heuristic),exp-8x8.pddl,8,324.0,25203.0,14.1640625,1.1556129455566406,True,False
+lazy_greedy_ff,Lazy Greedy (FF heuristic),exp-9x9.pddl,9,439.0,59509.0,20.16015625,2.3896706104278564,True,False
+greedy_add,Greedy (Additive heuristic),exp-2x2.pddl,2,12.0,23.0,9.984375,0.515322208404541,True,False
+greedy_add,Greedy (Additive heuristic),exp-3x3.pddl,3,33.0,61.0,9.984375,0.4959573745727539,True,False
+greedy_add,Greedy (Additive heuristic),exp-4x4.pddl,4,68.0,134.0,10.1171875,0.5374596118927002,True,False
+greedy_add,Greedy (Additive heuristic),exp-5x5.pddl,5,107.0,198.0,10.1171875,0.5407214164733887,True,False
+greedy_add,Greedy (Additive heuristic),exp-6x6.pddl,6,180.0,331.0,10.11328125,0.561720609664917,True,False
+greedy_add,Greedy (Additive heuristic),exp-7x7.pddl,7,291.0,869.0,10.25,0.5768997669219971,True,False
+greedy_add,Greedy (Additive heuristic),exp-8x8.pddl,8,402.0,1408.0,10.3984375,0.6417527198791504,True,False
+greedy_add,Greedy (Additive heuristic),exp-9x9.pddl,9,539.0,1087.0,10.60546875,0.6890237331390381,True,False
+lazy_wastar_low_mem,Lazy Weighted A* (W=2),exp-2x2.pddl,2,10.0,113.0,9.984375,0.5146441459655762,True,False
+lazy_wastar_low_mem,Lazy Weighted A* (W=2),exp-3x3.pddl,3,23.0,158.0,9.984375,0.5046498775482178,True,False
+lazy_wastar_low_mem,Lazy Weighted A* (W=2),exp-4x4.pddl,4,38.0,465.0,10.1171875,0.5074317455291748,True,False
+lazy_wastar_low_mem,Lazy Weighted A* (W=2),exp-5x5.pddl,5,71.0,8487.0,10.76171875,0.6201949119567871,True,False
+lazy_wastar_low_mem,Lazy Weighted A* (W=2),exp-6x6.pddl,6,106.0,21019.0,11.8046875,0.7170977592468262,True,False
+lazy_wastar_low_mem,Lazy Weighted A* (W=2),exp-7x7.pddl,7,149.0,45170.0,13.92578125,1.0206167697906494,True,False
+lazy_wastar_low_mem,Lazy Weighted A* (W=2),exp-8x8.pddl,8,,,,60.053475856781006,False,True
+lazy_wastar_low_mem,Lazy Weighted A* (W=2),exp-9x9.pddl,9,,,,60.00367832183838,False,True
+ehc,Enforced Hill-Climbing,exp-2x2.pddl,2,,,9.984375,0.5554895401000977,False,False
+ehc,Enforced Hill-Climbing,exp-3x3.pddl,3,,,9.984375,0.5338387489318848,False,False
+ehc,Enforced Hill-Climbing,exp-4x4.pddl,4,,,9.984375,0.5564055442810059,False,False
+ehc,Enforced Hill-Climbing,exp-5x5.pddl,5,,,9.984375,0.5792346000671387,False,False
+ehc,Enforced Hill-Climbing,exp-6x6.pddl,6,,,10.11328125,0.5471165180206299,False,False
+ehc,Enforced Hill-Climbing,exp-7x7.pddl,7,,,10.109375,0.6068408489227295,False,False
+ehc,Enforced Hill-Climbing,exp-8x8.pddl,8,,,10.11328125,0.6091933250427246,False,False
+ehc,Enforced Hill-Climbing,exp-9x9.pddl,9,,,10.11328125,0.5701472759246826,False,False
+lazy_wastar_3,Lazy Weighted A* (W=3),exp-2x2.pddl,2,10.0,75.0,9.984375,0.5626802444458008,True,False
+lazy_wastar_3,Lazy Weighted A* (W=3),exp-3x3.pddl,3,23.0,144.0,9.984375,0.575045108795166,True,False
+lazy_wastar_3,Lazy Weighted A* (W=3),exp-4x4.pddl,4,42.0,420.0,10.1171875,0.5766911506652832,True,False
+lazy_wastar_3,Lazy Weighted A* (W=3),exp-5x5.pddl,5,81.0,4941.0,10.375,0.6265852451324463,True,False
+lazy_wastar_3,Lazy Weighted A* (W=3),exp-6x6.pddl,6,110.0,12019.0,11.0234375,0.650092363357544,True,False
+lazy_wastar_3,Lazy Weighted A* (W=3),exp-7x7.pddl,7,175.0,40868.0,13.4921875,1.1130681037902832,True,False
+lazy_wastar_3,Lazy Weighted A* (W=3),exp-8x8.pddl,8,236.0,511567.0,55.70703125,6.814198017120361,True,False
+lazy_wastar_3,Lazy Weighted A* (W=3),exp-9x9.pddl,9,301.0,1722591.0,163.8671875,25.143621683120728,True,False
+lazy_wastar_5,Lazy Weighted A* (W=5),exp-2x2.pddl,2,10.0,48.0,9.984375,0.5636212825775146,True,False
+lazy_wastar_5,Lazy Weighted A* (W=5),exp-3x3.pddl,3,23.0,144.0,9.984375,0.5802435874938965,True,False
+lazy_wastar_5,Lazy Weighted A* (W=5),exp-4x4.pddl,4,42.0,432.0,10.1171875,0.5657734870910645,True,False
+lazy_wastar_5,Lazy Weighted A* (W=5),exp-5x5.pddl,5,89.0,2405.0,10.1171875,0.553614616394043,True,False
+lazy_wastar_5,Lazy Weighted A* (W=5),exp-6x6.pddl,6,120.0,3525.0,10.24609375,0.6016063690185547,True,False
+lazy_wastar_5,Lazy Weighted A* (W=5),exp-7x7.pddl,7,177.0,19345.0,11.80859375,0.8449409008026123,True,False
+lazy_wastar_5,Lazy Weighted A* (W=5),exp-8x8.pddl,8,264.0,107305.0,19.92578125,2.235891819000244,True,False
+lazy_wastar_5,Lazy Weighted A* (W=5),exp-9x9.pddl,9,369.0,262175.0,32.95703125,4.297111749649048,True,False
+eager_wastar,Eager Weighted A* (W=3),exp-2x2.pddl,2,10.0,26.0,9.984375,0.5382742881774902,True,False
+eager_wastar,Eager Weighted A* (W=3),exp-3x3.pddl,3,21.0,32.0,9.984375,0.5434184074401855,True,False
+eager_wastar,Eager Weighted A* (W=3),exp-4x4.pddl,4,38.0,73.0,9.984375,0.582705020904541,True,False
+eager_wastar,Eager Weighted A* (W=3),exp-5x5.pddl,5,81.0,972.0,10.25,0.6425924301147461,True,False
+eager_wastar,Eager Weighted A* (W=3),exp-6x6.pddl,6,118.0,7611.0,11.02734375,0.735206127166748,True,False
+eager_wastar,Eager Weighted A* (W=3),exp-7x7.pddl,7,171.0,13796.0,12.20703125,1.187304973602295,True,False
+eager_wastar,Eager Weighted A* (W=3),exp-8x8.pddl,8,232.0,68354.0,24.61328125,4.230493545532227,True,False
+eager_wastar,Eager Weighted A* (W=3),exp-9x9.pddl,9,307.0,86262.0,28.34375,7.916121006011963,True,False
+greedy_cg,Greedy (Causal Graph heuristic),exp-2x2.pddl,2,12.0,23.0,9.984375,0.5333654880523682,True,False
+greedy_cg,Greedy (Causal Graph heuristic),exp-3x3.pddl,3,33.0,61.0,9.984375,0.5705034732818604,True,False
+greedy_cg,Greedy (Causal Graph heuristic),exp-4x4.pddl,4,68.0,134.0,10.1171875,0.5627520084381104,True,False
+greedy_cg,Greedy (Causal Graph heuristic),exp-5x5.pddl,5,107.0,198.0,10.25,0.5382323265075684,True,False
+greedy_cg,Greedy (Causal Graph heuristic),exp-6x6.pddl,6,180.0,331.0,10.92578125,0.532020092010498,True,False
+greedy_cg,Greedy (Causal Graph heuristic),exp-7x7.pddl,7,291.0,869.0,12.4453125,0.5718343257904053,True,False
+greedy_cg,Greedy (Causal Graph heuristic),exp-8x8.pddl,8,402.0,1408.0,14.89453125,0.6156656742095947,True,False
+greedy_cg,Greedy (Causal Graph heuristic),exp-9x9.pddl,9,539.0,1087.0,19.515625,0.6286017894744873,True,False
+iterated_wastar,Iterated Weighted A*,exp-2x2.pddl,2,10.0,48.0,10.1171875,0.536205530166626,True,False
+iterated_wastar,Iterated Weighted A*,exp-3x3.pddl,3,23.0,144.0,11.2109375,0.8236441612243652,True,False
+iterated_wastar,Iterated Weighted A*,exp-4x4.pddl,4,42.0,432.0,10.1171875,0.5754306316375732,True,False
+iterated_wastar,Iterated Weighted A*,exp-5x5.pddl,5,89.0,2405.0,10.7734375,0.7503602504730225,True,False
+iterated_wastar,Iterated Weighted A*,exp-6x6.pddl,6,120.0,3525.0,11.79296875,0.9925482273101807,True,False
+iterated_wastar,Iterated Weighted A*,exp-7x7.pddl,7,177.0,19345.0,13.984375,1.6091117858886719,True,False
+iterated_wastar,Iterated Weighted A*,exp-8x8.pddl,8,,,,60.04073762893677,False,True
+iterated_wastar,Iterated Weighted A*,exp-9x9.pddl,9,,,,60.011321783065796,False,True
+restart_wastar,Restarting Weighted A*,exp-2x2.pddl,2,,,9.984375,0.5337061882019043,False,False
+restart_wastar,Restarting Weighted A*,exp-3x3.pddl,3,,,9.984375,0.5480506420135498,False,False
+restart_wastar,Restarting Weighted A*,exp-4x4.pddl,4,,,9.984375,0.6167764663696289,False,False
+restart_wastar,Restarting Weighted A*,exp-5x5.pddl,5,,,9.984375,0.5638353824615479,False,False
+restart_wastar,Restarting Weighted A*,exp-6x6.pddl,6,,,10.11328125,0.5980391502380371,False,False
+restart_wastar,Restarting Weighted A*,exp-7x7.pddl,7,,,10.11328125,0.6368629932403564,False,False
+restart_wastar,Restarting Weighted A*,exp-8x8.pddl,8,,,10.11328125,0.617405891418457,False,False
+restart_wastar,Restarting Weighted A*,exp-9x9.pddl,9,,,10.11328125,0.6677932739257812,False,False
