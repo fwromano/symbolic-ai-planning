@@ -1,0 +1,32 @@
+# Exploration problem configuration
+grid_size: 3
+
+robots:
+  B:
+    start: [1, 1]
+    can_traverse: [normal, restricted, rocky]
+    can_observe: [normal, rocky, restricted]
+  G:
+    start: [1, 1]
+    can_traverse: [normal, rocky]
+    can_observe: [normal, rocky, restricted]
+
+terrain_types:
+  normal:
+    cost: 1
+  rocky:
+    cost: 5
+  restricted:
+    cost: 1
+
+terrain_map:
+  default: normal
+  special:
+    "[1, 2]": restricted  # only B can traverse
+    "[2, 2]": rocky      # expensive (cost 5)
+
+goal:
+  all_explored: true
+  robot_positions:
+    B: [3, 3]
+    G: [3, 3]

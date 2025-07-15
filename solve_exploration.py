@@ -68,9 +68,10 @@ def setup_docker_container():
     time.sleep(2)
     return True
 
-def solve_with_docker(domain_file, problem_file, search_algorithm="astar(add())"):
-    """Solve using Docker container"""
-    print(f"\nSolving {problem_file} with {search_algorithm}...")
+def solve_with_docker(domain_file, problem_file, search_config):
+    """Solve using Docker container with specified search configuration"""
+    search_string = search_config.get('search', 'lazy_wastar([lmcut()], w=3)')
+    print(f"\nSolving with search: {search_string}")
     
     # Ensure container is running
     if not container_running('fast-downward'):
@@ -80,14 +81,18 @@ def solve_with_docker(domain_file, problem_file, search_algorithm="astar(add())"
     subprocess.run(['docker', 'cp', domain_file, f'fast-downward:/workspace/{domain_file}'])
     subprocess.run(['docker', 'cp', problem_file, f'fast-downward:/workspace/{problem_file}'])
     
-    # Run the planner
+    # Build command
     cmd = [
         'docker', 'exec', 'fast-downward',
         '/opt/downward/fast-downward.py',
         f'/workspace/{domain_file}',
         f'/workspace/{problem_file}',
-        '--search', search_algorithm
+        '--search', search_string
     ]
+    
+    # Add evaluator if specified
+    if 'evaluator' in search_config:
+        cmd.extend(['--evaluator', search_config['evaluator']])
     
     result = subprocess.run(cmd, capture_output=True, text=True)
     
@@ -163,7 +168,7 @@ def solve_with_docker(domain_file, problem_file, search_algorithm="astar(add())"
         if plan_steps:
             with open('solution_plan.txt', 'w') as f:
                 f.write(f"Problem: {problem_file}\n")
-                f.write(f"Search: {search_algorithm}\n\n")
+                f.write(f"Search: {search_string}\n\n")
                 f.write("=== PLAN ===\n")
                 for i, step in enumerate(plan_steps, 1):
                     step_clean = step.strip('()')
@@ -177,7 +182,6 @@ def solve_with_docker(domain_file, problem_file, search_algorithm="astar(add())"
                 if total_cost:
                     f.write(f"\n{total_cost}\n")
             print("\n💾 Plan saved to solution_plan.txt")
-        
     else:
         print("\n❌ No solution found or error occurred")
         print("Error output:", result.stderr)
@@ -388,11 +392,121 @@ goal:
         f.write(config)
     print("✓ Created terrain_config.yaml")
 
+def get_search_configs():
+    """Get available search configurations"""
+    return {
+        'optimal': [
+            {
+                'name': 'A* with LM-cut',
+                'search': 'astar(lmcut())',
+                'description': 'Optimal planner with landmark cut heuristic'
+            },
+            {
+                'name': 'A* with merge-and-shrink',
+                'search': 'astar(merge_and_shrink())',
+                'description': 'Optimal planner with merge-and-shrink abstraction'
+            },
+            {
+                'name': 'A* with iPDB',
+                'search': 'astar(ipdb())',
+                'description': 'Optimal planner with pattern database heuristic'
+            }
+        ],
+        'satisficing': [
+            {
+                'name': 'Greedy FF',
+                'search': 'eager_greedy([ff()])',
+                'description': 'Fast satisficing search with FF heuristic'
+            },
+            {
+                'name': 'Greedy add',
+                'search': 'eager_greedy([add()])',
+                'description': 'Fast satisficing search with additive heuristic'
+            },
+            {
+                'name': 'Lazy greedy FF',
+                'search': 'lazy_greedy([ff()])',
+                'description': 'Lazy satisficing search with FF heuristic'
+            },
+            {
+                'name': 'LAMA-first',
+                'search': 'lazy_greedy([lama_ff_syn()], preferred=[lama_ff_syn()])',
+                'description': 'LAMA planner - finds solution quickly'
+            }
+        ],
+        'anytime': [
+            {
+                'name': 'Weighted A* (W=3) with LM-cut',
+                'search': 'lazy_wastar([lmcut()], w=3)',
+                'description': 'Anytime weighted A* with LM-cut heuristic'
+            },
+            {
+                'name': 'Weighted A* (W=5) with LM-cut',
+                'search': 'lazy_wastar([lmcut()], w=5)',
+                'description': 'Anytime weighted A* with LM-cut heuristic'
+            },
+            {
+                'name': 'Weighted A* (W=3) with FF',
+                'search': 'lazy_wastar([ff()], w=3)',
+                'description': 'Anytime weighted A* with FF heuristic'
+            }
+        ]
+    }
+
+def select_search_config():
+    """Interactive selection of search configuration"""
+    configs = get_search_configs()
+    
+    print("\n🔍 Select search strategy:")
+    print("1. Optimal (guarantees shortest plan)")
+    print("2. Satisficing (finds solution quickly)")
+    print("3. Anytime (improves solution over time)")
+    print("4. Custom (enter your own)")
+    
+    choice = input("\nChoice (1-4) [default=3]: ").strip() or "3"
+    
+    if choice == "4":
+        search = input("Enter search string (e.g., 'astar(lmcut())'): ").strip()
+        return {'name': 'Custom', 'search': search}
+    
+    category_map = {'1': 'optimal', '2': 'satisficing', '3': 'anytime'}
+    if choice not in category_map:
+        print("Invalid choice, using default anytime search")
+        choice = '3'
+    
+    category = category_map[choice]
+    options = configs[category]
+    
+    print(f"\nAvailable {category} planners:")
+    for i, config in enumerate(options, 1):
+        print(f"{i}. {config['name']}: {config['description']}")
+    
+    planner_choice = input(f"\nChoice (1-{len(options)}) [default=1]: ").strip() or "1"
+    
+    try:
+        idx = int(planner_choice) - 1
+        if 0 <= idx < len(options):
+            return options[idx]
+    except ValueError:
+        pass
+    
+    print("Invalid choice, using first option")
+    return options[0]
 
 def main():
     """Main workflow"""
     print("🤖 Exploration Problem Solver")
     print("=" * 40)
+    
+    # Parse arguments
+    import argparse
+    parser = argparse.ArgumentParser(description='Solve exploration planning problems')
+    parser.add_argument('--config', default='terrain_config.yaml', help='Configuration file')
+    parser.add_argument('--auto', action='store_true', help='Run without prompts')
+    parser.add_argument('--search', help='Search algorithm (e.g., "astar(lmcut())")')
+    parser.add_argument('--optimal', action='store_true', help='Use optimal search')
+    parser.add_argument('--fast', action='store_true', help='Use fast satisficing search')
+    args = parser.parse_args()
     
     # Check Docker
     if not check_docker():
@@ -400,12 +514,12 @@ def main():
         sys.exit(1)
     
     # Check if config exists
-    if not os.path.exists('terrain_config.yaml'):
-        print("📝 No terrain_config.yaml found. Creating default...")
+    if not os.path.exists(args.config):
+        print(f"📝 No {args.config} found. Creating default...")
         create_default_config()
     
     # Load config
-    with open('terrain_config.yaml', 'r') as f:
+    with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
     
     print(f"\n📊 Configuration:")
@@ -426,33 +540,24 @@ def main():
         f.write(problem)
     print("  ✓ explorationProblem.pddl")
     
+    # Select search configuration
+    if args.search:
+        search_config = {'name': 'Custom', 'search': args.search}
+    elif args.optimal:
+        search_config = {'name': 'A* with LM-cut', 'search': 'astar(lmcut())'}
+    elif args.fast:
+        search_config = {'name': 'Greedy FF', 'search': 'eager_greedy([ff()])'}
+    else:
+        # Default to weighted A* with LM-cut - no prompts
+        search_config = {'name': 'Weighted A* (W=3) with LM-cut', 'search': 'lazy_wastar([lmcut()], w=3)'}
+    
+    print(f"\n🔧 Using: {search_config['name']}")
+    
     # Setup Docker and solve
     print("\n🐳 Setting up Docker environment...")
     try:
         setup_docker_container()
-        
-        # Try different search algorithms
-        algorithms = [
-            ("astar(add())", "A* with additive heuristic"),
-            ("eager_greedy([ff()])", "Greedy best-first with FF heuristic"),
-            ("astar(lmcut())", "A* with landmark cut heuristic")
-        ]
-        
-        solved = False
-        for algo, desc in algorithms:
-            if not solved:
-                print(f"\n🔍 Trying {desc}...")
-                try:
-                    solve_with_docker('explorationDomain.pddl', 'explorationProblem.pddl', algo)
-                    solved = True
-                    break
-                except Exception as e:
-                    print(f"  Failed with {algo}: {e}")
-        
-        if not solved:
-            print("\n❌ Could not find a solution with any algorithm")
-
-            
+        solve_with_docker('explorationDomain.pddl', 'explorationProblem.pddl', search_config)
             
     except Exception as e:
         print(f"\n❌ Error: {e}")
