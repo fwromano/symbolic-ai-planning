@@ -1,0 +1,29 @@
+Problem: explorationProblem.pddl
+Search: astar(add())
+
+=== PLAN ===
+1. Move g from l11 to l21
+2. Move g from l21 to l22
+3. Move b from l11 to l12
+4. g observes l22
+5. Move g from l22 to l32
+6. g observes l32
+7. Move g from l32 to l33
+8. g observes l33
+9. b observes l12
+10. Move b from l12 to l11
+11. Move g from l33 to l23
+12. b observes l11
+13. Move b from l11 to l21
+14. b observes l21
+15. Move b from l21 to l31
+16. b observes l31
+17. Move b from l31 to l32
+18. Move b from l32 to l33
+19. g observes l23
+20. Move g from l23 to l13
+21. g observes l13
+22. Move g from l13 to l23
+23. Move g from l23 to l33
+
+[t=0.002515s, 10224 KB] Plan cost: 18
