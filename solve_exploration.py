@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 All-in-one script: Config → PDDL → Solution
 Aligned with OWL ontology structure
@@ -9,6 +8,7 @@ import subprocess
 import os
 import sys
 import time
+from datetime import datetime
 
 def check_docker():
     """Check if Docker is available"""
@@ -68,7 +68,7 @@ def setup_docker_container():
     time.sleep(2)
     return True
 
-def solve_with_docker(domain_file, problem_file, search_config):
+def solve_with_docker(domain_file, problem_file, search_config, output_dir, timestamp, domain_filename, problem_filename, summary_filename):
     """Solve using Docker container with specified search configuration"""
     search_string = search_config.get('search', 'lazy_wastar([lmcut()], w=3)')
     print(f"\nSolving with search: {search_string}")
@@ -173,9 +173,13 @@ def solve_with_docker(domain_file, problem_file, search_config):
         
         # Save plan to file
         if plan_steps:
-            with open('solution_plan.txt', 'w') as f:
-                f.write(f"Problem: {problem_file}\n")
-                f.write(f"Search: {search_string}\n\n")
+            # Save in the same output directory with timestamp
+            plan_filename = f"{output_dir}/solution_plan_{timestamp}.txt"
+            with open(plan_filename, 'w') as f:
+                f.write(f"Problem: {problem_filename}\n")
+                f.write(f"Domain: {domain_filename}\n")
+                f.write(f"Search: {search_string}\n")
+                f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
                 f.write("=== PLAN ===\n")
                 for i, step in enumerate(plan_steps, 1):
                     step_clean = step.strip('()')
@@ -191,7 +195,23 @@ def solve_with_docker(domain_file, problem_file, search_config):
                         f.write(f"{i}. {step}\n")
                 if total_cost:
                     f.write(f"\n{total_cost}\n")
-            print("\n💾 Plan saved to solution_plan.txt")
+            print(f"\n💾 Plan saved to: {plan_filename}")
+            
+            # Also save the raw PDDL plan
+            raw_plan_filename = f"{output_dir}/raw_plan_{timestamp}.pddl"
+            with open(raw_plan_filename, 'w') as f:
+                f.write("; Raw PDDL plan\n")
+                for step in plan_steps:
+                    f.write(f"{step}\n")
+            
+            # Update summary with solution info
+            with open(summary_filename, 'a') as f:
+                f.write(f"\nSolution found!\n")
+                f.write(f"Plan file: {plan_filename}\n")
+                f.write(f"Raw plan: {raw_plan_filename}\n")
+                f.write(f"Plan length: {len(plan_steps)} steps\n")
+                if total_cost:
+                    f.write(f"{total_cost}\n")
     else:
         print("\n❌ No solution found or error occurred")
         print("Error output:", result.stderr)
@@ -554,20 +574,7 @@ def main():
         obs_types = set(['any', 'blue', 'green'])  # Standard observation types
         print(f"  • Observation types: {', '.join(sorted(obs_types))}")
     
-    # Generate PDDL files
-    print("\n📄 Generating PDDL files...")
-    domain = generate_domain()
-    problem = generate_problem_from_config(config)
-    
-    with open('explorationDomain.pddl', 'w') as f:
-        f.write(domain)
-    print("  ✓ explorationDomain.pddl")
-    
-    with open('explorationProblem.pddl', 'w') as f:
-        f.write(problem)
-    print("  ✓ explorationProblem.pddl")
-    
-    # Select search configuration
+    # Select search configuration first
     if args.search:
         search_config = {'name': 'Custom', 'search': args.search}
     elif args.optimal:
@@ -580,11 +587,64 @@ def main():
     
     print(f"\n🔧 Using: {search_config['name']}")
     
+    # Generate PDDL files
+    print("\n📄 Generating PDDL files...")
+    domain = generate_domain()
+    problem = generate_problem_from_config(config)
+    
+    # Create output directory for generated files
+    output_dir = "generated_pddl"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Save with timestamp for versioning
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Save domain file
+    domain_filename = f"{output_dir}/exploration_domain_{timestamp}.pddl"
+    with open(domain_filename, 'w') as f:
+        f.write(domain)
+    print(f"  ✓ Domain saved to: {domain_filename}")
+    
+    # Save problem file
+    problem_filename = f"{output_dir}/exploration_problem_{timestamp}.pddl"
+    with open(problem_filename, 'w') as f:
+        f.write(problem)
+    print(f"  ✓ Problem saved to: {problem_filename}")
+    
+    # Also save current versions for Docker
+    with open('explorationDomain.pddl', 'w') as f:
+        f.write(domain)
+    with open('explorationProblem.pddl', 'w') as f:
+        f.write(problem)
+    
+    # Save a summary file with the configuration and filenames
+    summary_filename = f"{output_dir}/summary_{timestamp}.txt"
+    with open(summary_filename, 'w') as f:
+        f.write("Exploration Problem Generation Summary\n")
+        f.write("=" * 40 + "\n\n")
+        f.write(f"Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"Config file: {args.config}\n")
+        f.write(f"Domain file: {domain_filename}\n")
+        f.write(f"Problem file: {problem_filename}\n\n")
+        f.write("Configuration:\n")
+        f.write(f"  Grid size: {config['grid_size']}x{config['grid_size']}\n")
+        f.write(f"  Robots: {', '.join(config['robots'].keys())}\n")
+        f.write(f"  Terrain types: {', '.join(config['terrain_types'].keys())}\n")
+        if 'observation_map' in config:
+            f.write(f"  Observation types: any, blue, green\n")
+        f.write(f"\nSearch configuration: {search_config['name']}\n")
+        f.write(f"Search string: {search_config['search']}\n")
+    
+    print(f"  ✓ Summary saved to: {summary_filename}")
+    print(f"\n📁 All files saved in: {output_dir}/")
+    
     # Setup Docker and solve
     print("\n🐳 Setting up Docker environment...")
     try:
         setup_docker_container()
-        solve_with_docker('explorationDomain.pddl', 'explorationProblem.pddl', search_config)
+        solve_with_docker('explorationDomain.pddl', 'explorationProblem.pddl', search_config, 
+                         output_dir, timestamp, domain_filename, problem_filename, summary_filename)
             
     except Exception as e:
         print(f"\n❌ Error: {e}")

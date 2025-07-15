@@ -1,0 +1,22 @@
+Exploration Problem Generation Summary
+========================================
+
+Generated at: 2025-07-15 16:00:08
+Config file: terrain_config.yaml
+Domain file: generated_pddl/exploration_domain_20250715_160008.pddl
+Problem file: generated_pddl/exploration_problem_20250715_160008.pddl
+
+Configuration:
+  Grid size: 3x3
+  Robots: vehB, vehG
+  Terrain types: grass, gravel, rock
+  Observation types: any, blue, green
+
+Search configuration: Weighted A* (W=3) with LM-cut
+Search string: lazy_wastar([lmcut()], w=3)
+
+Solution found!
+Plan file: generated_pddl/solution_plan_20250715_160008.txt
+Raw plan: generated_pddl/raw_plan_20250715_160008.pddl
+Plan length: 23 steps
+[t=0.003028s, 10356 KB] Plan cost: 18
