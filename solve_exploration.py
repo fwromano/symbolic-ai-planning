@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 All-in-one script: Config → PDDL → Solution
-Handles Docker container management automatically
+Aligned with OWL ontology structure
 """
 
 import yaml
@@ -138,9 +138,13 @@ def solve_with_docker(domain_file, problem_file, search_config):
                 step_clean = step.strip('()')
                 parts = step_clean.split()
                 if parts[0] == 'move':
-                    print(f"  {i}. Move {parts[1]} from {parts[2]} to {parts[3]}")
+                    # Convert location format for display
+                    from_loc = parts[2].replace('l', 'r')  # l11 -> r11 to match OWL
+                    to_loc = parts[3].replace('l', 'r')
+                    print(f"  {i}. Move {parts[1]} from {from_loc} to {to_loc}")
                 elif parts[0] == 'observe':
-                    print(f"  {i}. {parts[1]} observes {parts[2]}")
+                    loc = parts[2].replace('l', 'r')
+                    print(f"  {i}. {parts[1]} observes {loc}")
                 else:
                     print(f"  {i}. {step}")
             if total_cost:
@@ -158,9 +162,12 @@ def solve_with_docker(domain_file, problem_file, search_config):
                             step_clean = step.strip('()')
                             parts = step_clean.split()
                             if parts[0] == 'move':
-                                print(f"  {i}. Move {parts[1]} from {parts[2]} to {parts[3]}")
+                                from_loc = parts[2].replace('l', 'r')
+                                to_loc = parts[3].replace('l', 'r')
+                                print(f"  {i}. Move {parts[1]} from {from_loc} to {to_loc}")
                             elif parts[0] == 'observe':
-                                print(f"  {i}. {parts[1]} observes {parts[2]}")
+                                loc = parts[2].replace('l', 'r')
+                                print(f"  {i}. {parts[1]} observes {loc}")
                             else:
                                 print(f"  {i}. {step}")
         
@@ -174,9 +181,12 @@ def solve_with_docker(domain_file, problem_file, search_config):
                     step_clean = step.strip('()')
                     parts = step_clean.split()
                     if parts[0] == 'move':
-                        f.write(f"{i}. Move {parts[1]} from {parts[2]} to {parts[3]}\n")
+                        from_loc = parts[2].replace('l', 'r')
+                        to_loc = parts[3].replace('l', 'r')
+                        f.write(f"{i}. Move {parts[1]} from {from_loc} to {to_loc}\n")
                     elif parts[0] == 'observe':
-                        f.write(f"{i}. {parts[1]} observes {parts[2]}\n")
+                        loc = parts[2].replace('l', 'r')
+                        f.write(f"{i}. {parts[1]} observes {loc}\n")
                     else:
                         f.write(f"{i}. {step}\n")
                 if total_cost:
@@ -189,7 +199,7 @@ def solve_with_docker(domain_file, problem_file, search_config):
             print("\n💡 Try a simpler search algorithm like --search 'eager_greedy([ff()])'")
 
 def generate_domain():
-    """Generate the exploration domain"""
+    """Generate the exploration domain (OWL-aligned)"""
     return """(define (domain exploration)
     (:requirements :strips :typing :equality :action-costs)
     
@@ -235,7 +245,7 @@ def generate_domain():
 )"""
 
 def generate_problem_from_config(config):
-    """Generate problem from config"""
+    """Generate problem from config (OWL-aligned)"""
     lines = ["(define (problem exploration-generated)",
              "    (:domain exploration)",
              "    ",
@@ -245,12 +255,12 @@ def generate_problem_from_config(config):
     robot_names = " ".join(config['robots'].keys())
     lines.append(f"        {robot_names} - robot")
     
-    # Add locations
+    # Add locations (using l prefix for PDDL, but representing r locations from OWL)
     grid_size = config['grid_size']
     locations = []
     for row in range(1, grid_size + 1):
         for col in range(1, grid_size + 1):
-            locations.append(f"l{row}{col}")
+            locations.append(f"l{row}{col}")  # PDDL format, represents r{row}{col} in OWL
     
     for i in range(0, len(locations), 9):
         chunk = " ".join(locations[i:i+9])
@@ -269,12 +279,12 @@ def generate_problem_from_config(config):
         lines.append(f"        (at {robot} l{start_row}{start_col})")
     
     # Get terrain info
-    default_terrain = config['terrain_map'].get('default', 'normal')
+    default_terrain = config['terrain_map'].get('default', 'grass')
     special_terrains = config['terrain_map'].get('special', {})
     terrain_costs = config['terrain_types']
     
     # Build traversability and costs
-    lines.append("\n        ;; Traversability and costs")
+    lines.append("\n        ;; Traversability and costs (based on terrain types)")
     for row in range(1, grid_size + 1):
         for col in range(1, grid_size + 1):
             loc = f"l{row}{col}"
@@ -287,40 +297,46 @@ def generate_problem_from_config(config):
                     terrain = value
                     break
             
-            # Set traversability and costs
+            # Set traversability and costs based on terrain type
             for robot, props in config['robots'].items():
-                if terrain in props['can_traverse']:
+                if terrain in props.get('can_traverse', []):
                     lines.append(f"        (can-traverse {robot} {loc})")
                     cost = terrain_costs[terrain]['cost']
                     lines.append(f"        (= (traverse-cost {robot} {loc}) {cost})")
     
     # Build observation capabilities
-    lines.append("\n        ;; Observation capabilities")
+    lines.append("\n        ;; Observation capabilities (based on observation types)")
+    
+    # Get observation map
+    default_obs = config['observation_map'].get('default', 'any')
+    special_obs = config['observation_map'].get('special', {})
     
     for row in range(1, grid_size + 1):
         for col in range(1, grid_size + 1):
             loc = f"l{row}{col}"
             
-            # Determine terrain type
-            terrain = default_terrain
-            for key, value in special_terrains.items():
+            # Determine observation type for this location
+            obs_type = default_obs
+            for key, value in special_obs.items():
                 if (isinstance(key, str) and key == f"[{row}, {col}]") or \
                    (isinstance(key, (list, tuple)) and key == [row, col]):
-                    terrain = value
+                    obs_type = value
                     break
             
-            # Set observation based on terrain type and robot capabilities
+            # Set observation capabilities based on observation type
             for robot, props in config['robots'].items():
-                if terrain in props['can_observe']:
+                if obs_type in props.get('can_observe', []):
                     lines.append(f"        (can-observe {robot} {loc})")
     
-    # Grid adjacency
+    # Grid adjacency (matching OWL's northOf, southOf, eastOf, westOf)
     lines.append("\n        ;; Grid adjacency")
     for row in range(1, grid_size + 1):
         for col in range(1, grid_size + 1):
+            # East-West adjacency
             if col < grid_size:
                 lines.append(f"        (adjacent l{row}{col} l{row}{col+1}) "
                            f"(adjacent l{row}{col+1} l{row}{col})")
+            # North-South adjacency (row 1 is bottom, higher rows are north)
             if row < grid_size:
                 lines.append(f"        (adjacent l{row}{col} l{row+1}{col}) "
                            f"(adjacent l{row+1}{col} l{row}{col})")
@@ -354,43 +370,51 @@ def generate_problem_from_config(config):
     return "\n".join(lines)
 
 def create_default_config():
-    """Create default configuration file"""
-    config = """# Exploration problem configuration
-grid_size: 5
+    """Create default configuration file aligned with OWL ontology"""
+    config = """# Exploration problem configuration (OWL-aligned)
+# This configuration matches the E1.min.owl ontology structure
+
+grid_size: 3
 
 robots:
-  B:
-    start: [1, 1]
-    can_traverse: [normal, restricted, rocky]
-    can_observe: [normal, rocky, restricted]
-  G:
-    start: [1, 1]
-    can_traverse: [normal, rocky]
-    can_observe: [normal, rocky, restricted]
+  vehB:  # Blue vehicle (alpha_r in OWL)
+    start: [1, 1]  # r11 in OWL
+    can_traverse: [grass, gravel, rock]  # agCanTraverseType
+    can_observe: [blue, any]  # agCanObserveType
+  vehG:  # Green vehicle (alpha_r in OWL)
+    start: [1, 1]  # r11 in OWL
+    can_traverse: [grass, gravel]  # Cannot traverse rock
+    can_observe: [green, any]  # agCanObserveType
 
-terrain_types:
-  normal:
+terrain_types:  # terrainType in OWL
+  grass:
     cost: 1
-  rocky:
-    cost: 5
-  restricted:
-    cost: 1
+  gravel:
+    cost: 5  # Higher cost terrain
+  rock:
+    cost: 1  # Note: only vehB can traverse this
 
-terrain_map:
-  default: normal
+observation_map:  # locHasObserveType in OWL
+  default: any  # Most locations observable by any robot
   special:
-    "[1, 2]": restricted  # only B can traverse
-    "[2, 2]": rocky      # expensive (cost 5)
+    "[1, 3]": blue   # r13 - only vehB can observe
+    "[3, 2]": green  # r32 - only vehG can observe
+
+terrain_map:  # locHasTerrainType in OWL
+  default: grass  # Most locations are grass
+  special:
+    "[1, 2]": rock    # r12 - only vehB can traverse
+    "[2, 2]": gravel  # r22 - expensive for both robots
 
 goal:
-  all_explored: true
+  all_explored: true  # All locations must be observed
   robot_positions:
-    B: [5, 5]
-    G: [5, 5]
+    vehB: [3, 3]  # r33 in OWL
+    vehG: [3, 3]  # r33 in OWL
 """
     with open('terrain_config.yaml', 'w') as f:
         f.write(config)
-    print("✓ Created terrain_config.yaml")
+    print("✓ Created terrain_config.yaml (OWL-aligned)")
 
 def get_search_configs():
     """Get available search configurations"""
@@ -495,12 +519,12 @@ def select_search_config():
 
 def main():
     """Main workflow"""
-    print("🤖 Exploration Problem Solver")
+    print("🤖 OWL-Aligned Exploration Problem Solver")
     print("=" * 40)
     
     # Parse arguments
     import argparse
-    parser = argparse.ArgumentParser(description='Solve exploration planning problems')
+    parser = argparse.ArgumentParser(description='Solve exploration planning problems (OWL-aligned)')
     parser.add_argument('--config', default='terrain_config.yaml', help='Configuration file')
     parser.add_argument('--auto', action='store_true', help='Run without prompts')
     parser.add_argument('--search', help='Search algorithm (e.g., "astar(lmcut())")')
@@ -515,17 +539,20 @@ def main():
     
     # Check if config exists
     if not os.path.exists(args.config):
-        print(f"📝 No {args.config} found. Creating default...")
+        print(f"📝 No {args.config} found. Creating default OWL-aligned configuration...")
         create_default_config()
     
     # Load config
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
     
-    print(f"\n📊 Configuration:")
+    print(f"\n📊 Configuration (OWL-aligned):")
     print(f"  • Grid: {config['grid_size']}x{config['grid_size']}")
     print(f"  • Robots: {', '.join(config['robots'].keys())}")
     print(f"  • Terrain types: {', '.join(config['terrain_types'].keys())}")
+    if 'observation_map' in config:
+        obs_types = set(['any', 'blue', 'green'])  # Standard observation types
+        print(f"  • Observation types: {', '.join(sorted(obs_types))}")
     
     # Generate PDDL files
     print("\n📄 Generating PDDL files...")

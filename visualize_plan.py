@@ -7,7 +7,7 @@ from matplotlib.widgets import Button, Slider, TextBox
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.animation import FuncAnimation
-from matplotlib.patches import Rectangle, Circle
+from matplotlib.patches import Rectangle, Circle, FancyBboxPatch
 from matplotlib.lines import Line2D
 from matplotlib.widgets import Button, Slider
 import numpy as np
@@ -92,7 +92,7 @@ class PlanVisualizer:
         
         # Parse terrain map
         self.terrain_map = {}
-        default_terrain = config['terrain_map'].get('default', 'normal')
+        default_terrain = config['terrain_map'].get('default', 'grass')
         
         for row in range(1, self.grid_size + 1):
             for col in range(1, self.grid_size + 1):
@@ -110,24 +110,33 @@ class PlanVisualizer:
                 row, col = key
                 self.terrain_map[(row, col)] = terrain
         
-        # Parse special observations
-        self.special_obs = {}
-        for key, robots in config.get('special_observations', {}).items():
-            if isinstance(key, str):
-                match = re.match(r'\[(\d+),\s*(\d+)\]', key)
-                if match:
-                    row, col = int(match.group(1)), int(match.group(2))
-                    self.special_obs[(row, col)] = robots
-            else:
-                self.special_obs[key] = robots
+        # Parse observation map (OWL-aligned)
+        self.observation_map = {}
+        if 'observation_map' in config:
+            default_obs = config['observation_map'].get('default', 'any')
+            
+            for row in range(1, self.grid_size + 1):
+                for col in range(1, self.grid_size + 1):
+                    self.observation_map[(row, col)] = default_obs
+            
+            # Apply special observation types
+            for key, obs_type in config['observation_map'].get('special', {}).items():
+                if isinstance(key, str):
+                    match = re.match(r'\[(\d+),\s*(\d+)\]', key)
+                    if match:
+                        row, col = int(match.group(1)), int(match.group(2))
+                        self.observation_map[(row, col)] = obs_type
+                else:
+                    self.observation_map[key] = obs_type
         
-        # Terrain colors
+        # Terrain colors (OWL-aligned)
         self.terrain_colors = {
-            'normal': '#90EE90',      # Light green
-            'rocky': '#A0522D',       # Brown
-            'restricted': '#FFB6C1',  # Light pink
-            'water': '#87CEEB',       # Sky blue
-            'cliff': '#696969'        # Dark gray
+            'grass': '#90EE90',       # Light green
+            'gravel': '#A0522D',      # Brown
+            'rock': '#696969',        # Dark gray
+            'normal': '#90EE90',      # Backward compatibility
+            'rocky': '#A0522D',       # Backward compatibility
+            'restricted': '#FFB6C1'   # Backward compatibility
         }
         
         # Action list text objects and scroll position
@@ -145,26 +154,37 @@ class PlanVisualizer:
                            ha='center', va='top', fontsize=14, weight='bold',
                            transform=self.action_ax.transAxes)
         
-        # Scroll info
-        total_actions = len(self.actions)
-        self.scroll_info = self.action_ax.text(0.5, 0.93, 
-                                               f'Showing 1-{min(self.visible_actions, total_actions)} of {total_actions}',
-                                               ha='center', va='top', fontsize=9, style='italic',
+        # Add a background box for the action list
+        self.action_ax.add_patch(Rectangle((0.02, 0.05), 0.96, 0.88,
+                                          transform=self.action_ax.transAxes,
+                                          facecolor='white', edgecolor='gray',
+                                          linewidth=2, zorder=0))
+        
+        # Scroll info at bottom
+        self.scroll_info = self.action_ax.text(0.5, 0.02, 
+                                               f'Actions: {len(self.actions)} total',
+                                               ha='center', va='bottom', fontsize=9, 
+                                               color='gray', style='italic',
                                                transform=self.action_ax.transAxes)
         
-        # Create scroll buttons
-        scroll_btn_width = 0.03
-        scroll_btn_height = 0.2
+        # Create a scroll indicator bar on the right
+        self.scroll_bar_ax = self.action_ax.inset_axes([0.92, 0.08, 0.02, 0.82])
+        self.scroll_bar_ax.set_xlim(0, 1)
+        self.scroll_bar_ax.set_ylim(0, 1)
+        self.scroll_bar_ax.axis('off')
         
-        # Up scroll button
-        self.scroll_up_ax = plt.axes([0.95, 0.4, scroll_btn_width, scroll_btn_height])
-        self.scroll_up_btn = Button(self.scroll_up_ax, '▲', color='lightgray')
-        self.scroll_up_btn.on_clicked(self.scroll_up)
+        # Scroll track
+        self.scroll_track = Rectangle((0, 0), 1, 1, 
+                                    facecolor='#E0E0E0', edgecolor='gray')
+        self.scroll_bar_ax.add_patch(self.scroll_track)
         
-        # Down scroll button
-        self.scroll_down_ax = plt.axes([0.95, 0.15, scroll_btn_width, scroll_btn_height])
-        self.scroll_down_btn = Button(self.scroll_down_ax, '▼', color='lightgray')
-        self.scroll_down_btn.on_clicked(self.scroll_down)
+        # Scroll thumb (will be updated based on position)
+        self.scroll_thumb = Rectangle((0, 0.5), 1, 0.2, 
+                                    facecolor='#606060', edgecolor='gray')
+        self.scroll_bar_ax.add_patch(self.scroll_thumb)
+        
+        # Mouse wheel scroll support
+        self.fig.canvas.mpl_connect('scroll_event', self.on_scroll)
         
         # Create text objects for visible actions
         y_start = 0.88
@@ -174,7 +194,8 @@ class PlanVisualizer:
             y_pos = y_start - (i * y_step)
             txt_obj = self.action_ax.text(0.05, y_pos, '',
                                          transform=self.action_ax.transAxes,
-                                         fontsize=10, va='top')
+                                         fontsize=10, va='top', 
+                                         family='monospace')  # Monospace for alignment
             self.action_texts.append(txt_obj)
         
         # Initial update
@@ -270,13 +291,22 @@ class PlanVisualizer:
                     self.ax.text(plot_col + 0.5, plot_row + 0.1, '✓',
                                ha='center', va='bottom', fontsize=16, color='darkgreen')
                 
-                # Mark special observations
-                if (row, col) in self.special_obs:
-                    robots = self.special_obs[(row, col)]
-                    obs_text = f"[{','.join(robots)} only]"
-                    self.ax.text(plot_col + 0.5, plot_row + 0.5, obs_text,
-                               ha='center', va='center', fontsize=9,
-                               bbox=dict(boxstyle="round,pad=0.3", facecolor='yellow', alpha=0.7))
+                # Mark observation restrictions (OWL-aligned)
+                if hasattr(self, 'observation_map') and (row, col) in self.observation_map:
+                    obs_type = self.observation_map[(row, col)]
+                    if obs_type != 'any':
+                        # Show which robots can observe this location
+                        observable_by = []
+                        for robot, props in self.config['robots'].items():
+                            if obs_type in props.get('can_observe', []):
+                                observable_by.append(robot)
+                        if observable_by:
+                            obs_text = f"[{obs_type}]"
+                            self.ax.text(plot_col + 0.5, plot_row + 0.5, obs_text,
+                                       ha='center', va='center', fontsize=9,
+                                       bbox=dict(boxstyle="round,pad=0.3", 
+                                               facecolor='yellow' if obs_type == 'blue' else 'lightgreen',
+                                               alpha=0.7))
         
         # Draw robots (handle multiple robots in same cell)
         # Group robots by position
@@ -384,10 +414,18 @@ class PlanVisualizer:
         
         self.ax.set_title(title, fontsize=14, weight='bold')
         
+    def on_scroll(self, event):
+        """Handle mouse wheel scrolling"""
+        if event.inaxes == self.action_ax:
+            if event.button == 'up':
+                self.scroll_up()
+            elif event.button == 'down':
+                self.scroll_down()
+    
     def scroll_up(self, event=None):
         """Scroll action list up"""
         if self.scroll_position > 0:
-            self.scroll_position -= 1
+            self.scroll_position = max(0, self.scroll_position - 3)  # Scroll 3 lines at a time
             self.update_action_list()
             plt.draw()
     
@@ -395,28 +433,34 @@ class PlanVisualizer:
         """Scroll action list down"""
         max_scroll = max(0, len(self.actions) - self.visible_actions)
         if self.scroll_position < max_scroll:
-            self.scroll_position += 1
+            self.scroll_position = min(max_scroll, self.scroll_position + 3)  # Scroll 3 lines at a time
             self.update_action_list()
             plt.draw()
     
     def update_action_list(self):
         """Update the action list display with current scroll position"""
-        # Update scroll info
-        start_idx = self.scroll_position + 1
-        end_idx = min(self.scroll_position + self.visible_actions, len(self.actions))
-        self.scroll_info.set_text(f'Showing {start_idx}-{end_idx} of {len(self.actions)}')
-        
-        # Update button states
-        self.scroll_up_btn.color = 'lightblue' if self.scroll_position > 0 else 'lightgray'
-        max_scroll = max(0, len(self.actions) - self.visible_actions)
-        self.scroll_down_btn.color = 'lightblue' if self.scroll_position < max_scroll else 'lightgray'
-        
-        # Auto-scroll to current action if it's not visible
+        # Auto-scroll to keep current action visible
         if self.current_step >= 0:
-            if self.current_step < self.scroll_position or self.current_step >= self.scroll_position + self.visible_actions:
-                # Center current action in view
-                self.scroll_position = max(0, min(self.current_step - self.visible_actions // 2, 
-                                                 len(self.actions) - self.visible_actions))
+            # Check if current action is outside visible range
+            if self.current_step < self.scroll_position:
+                # Scroll up to show current action at top
+                self.scroll_position = self.current_step
+            elif self.current_step >= self.scroll_position + self.visible_actions:
+                # Scroll down to show current action at bottom
+                self.scroll_position = max(0, self.current_step - self.visible_actions + 1)
+        
+        # Update scroll bar position
+        if len(self.actions) > self.visible_actions:
+            # Calculate thumb size and position
+            thumb_height = self.visible_actions / len(self.actions)
+            thumb_position = 1 - (self.scroll_position / (len(self.actions) - self.visible_actions)) - thumb_height
+            
+            self.scroll_thumb.set_height(thumb_height)
+            self.scroll_thumb.set_y(max(0, thumb_position))
+        else:
+            # No scrolling needed - fill the bar
+            self.scroll_thumb.set_height(1)
+            self.scroll_thumb.set_y(0)
         
         # Update visible actions
         for i, txt_obj in enumerate(self.action_texts):
@@ -424,20 +468,28 @@ class PlanVisualizer:
             
             if action_idx < len(self.actions):
                 action = self.actions[action_idx]
+                
+                # Format action text
                 if action['type'] == 'move':
-                    text = f"{action_idx+1}. Move {action['robot']} {action['from']}→{action['to']}"
+                    action_text = f"Move {action['robot']} {action['from']}→{action['to']}"
                 else:
-                    text = f"{action_idx+1}. {action['robot']} observe {action['location']}"
+                    action_text = f"Observe {action['robot']} @ {action['location']}"
+                
+                # Format with fixed width for alignment
+                line_num = f"{action_idx+1:3d}."
                 
                 # Highlight current action
                 if action_idx == self.current_step:
-                    txt_obj.set_text(f"▶ {text}")
+                    full_text = f"▶ {line_num} {action_text}"
+                    txt_obj.set_text(full_text)
                     txt_obj.set_weight('bold')
-                    txt_obj.set_color('red')
+                    txt_obj.set_color('white')
                     txt_obj.set_fontsize(11)
-                    txt_obj.set_bbox(dict(boxstyle="round,pad=0.3", facecolor='yellow', alpha=0.3))
+                    txt_obj.set_bbox(dict(boxstyle="round,pad=0.3", 
+                                        facecolor='#2E86AB', edgecolor='none'))
                 else:
-                    txt_obj.set_text(f"  {text}")
+                    full_text = f"  {line_num} {action_text}"
+                    txt_obj.set_text(full_text)
                     txt_obj.set_weight('normal')
                     txt_obj.set_color('black')
                     txt_obj.set_fontsize(10)

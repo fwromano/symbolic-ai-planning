@@ -1,32 +1,40 @@
-# Exploration problem configuration
-grid_size: 5
+# Exploration problem configuration (OWL-aligned)
+# This configuration matches the E1.min.owl ontology structure
+
+grid_size: 3
 
 robots:
-  B:
-    start: [1, 1]
-    can_traverse: [normal, restricted, rocky]
-    can_observe: [normal, rocky, restricted]
-  G:
-    start: [1, 1]
-    can_traverse: [normal, rocky]
-    can_observe: [normal, rocky, restricted]
+  vehB:  # Blue vehicle (alpha_r in OWL)
+    start: [1, 1]  # r11 in OWL
+    can_traverse: [grass, gravel, rock]  # agCanTraverseType
+    can_observe: [blue, any]  # agCanObserveType
+  vehG:  # Green vehicle (alpha_r in OWL)
+    start: [1, 1]  # r11 in OWL
+    can_traverse: [grass, gravel]  # Cannot traverse rock
+    can_observe: [green, any]  # agCanObserveType
 
-terrain_types:
-  normal:
+terrain_types:  # terrainType in OWL
+  grass:
     cost: 1
-  rocky:
-    cost: 5
-  restricted:
-    cost: 1
+  gravel:
+    cost: 5  # Higher cost terrain
+  rock:
+    cost: 1  # Note: only vehB can traverse this
 
-terrain_map:
-  default: normal
+observation_map:  # locHasObserveType in OWL
+  default: any  # Most locations observable by any robot
   special:
-    "[1, 2]": restricted  # only B can traverse
-    "[2, 2]": rocky      # expensive (cost 5)
+    "[1, 3]": blue   # r13 - only vehB can observe
+    "[3, 2]": green  # r32 - only vehG can observe
+
+terrain_map:  # locHasTerrainType in OWL
+  default: grass  # Most locations are grass
+  special:
+    "[1, 2]": rock    # r12 - only vehB can traverse
+    "[2, 2]": gravel  # r22 - expensive for both robots
 
 goal:
-  all_explored: true
+  all_explored: true  # All locations must be observed
   robot_positions:
-    B: [5, 5]
-    G: [5, 5]
+    vehB: [3, 3]  # r33 in OWL
+    vehG: [3, 3]  # r33 in OWL
