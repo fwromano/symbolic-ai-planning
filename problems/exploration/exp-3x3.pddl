@@ -35,20 +35,25 @@
 (can-observe B l11)
 (can-traverse G l11)
 (can-observe G l11)
+
 (can-traverse B l12)
 (can-observe B l12)
 (can-traverse G l12)
 (can-observe G l12)
+
 (can-observe B l13)
 (can-traverse G l13)
 (can-observe G l13)
+
 (can-traverse B l21)
 (can-observe B l21)
 (can-traverse G l21)
 (can-observe G l21)
+
 (can-traverse B l22)
 (can-observe B l22)
 (can-traverse G l22)
+
 (can-traverse B l23)
 (can-observe B l23)
 (can-traverse G l23)
