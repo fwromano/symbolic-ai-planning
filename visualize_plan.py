@@ -3,7 +3,7 @@
 Visualize the exploration plan execution with GUI controls
 """
 
-import yaml
+from matplotlib.widgets import Button, Slider, TextBox
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.animation import FuncAnimation
@@ -12,6 +12,7 @@ from matplotlib.lines import Line2D
 from matplotlib.widgets import Button, Slider
 import numpy as np
 import re
+import yaml
 
 def parse_plan_file(filename='sas_plan'):
     """Parse the plan file to extract actions"""
@@ -67,6 +68,7 @@ class PlanVisualizer:
         self.is_playing = False
         self.animation_speed = 1.5  # seconds per frame
         self.animation = None
+        self.timer = None
         
         # Initialize robot positions
         self.robot_positions = {}
@@ -128,44 +130,55 @@ class PlanVisualizer:
             'cliff': '#696969'        # Dark gray
         }
         
-        # Action list text objects
+        # Action list text objects and scroll position
         self.action_texts = []
+        self.scroll_position = 0
+        self.visible_actions = 20  # Number of actions visible at once
         
         # Setup figure with GUI
         self.setup_gui()
         
     def setup_action_list(self):
-        """Setup the action list display"""
+        """Setup the action list display with scroll functionality"""
+        # Title
         self.action_ax.text(0.5, 0.98, 'Action Plan', 
                            ha='center', va='top', fontsize=14, weight='bold',
                            transform=self.action_ax.transAxes)
         
-        # Create text for each action
-        max_display = min(25, len(self.actions))  # Limit display to avoid crowding
-        y_start = 0.94
-        y_step = 0.035
+        # Scroll info
+        total_actions = len(self.actions)
+        self.scroll_info = self.action_ax.text(0.5, 0.93, 
+                                               f'Showing 1-{min(self.visible_actions, total_actions)} of {total_actions}',
+                                               ha='center', va='top', fontsize=9, style='italic',
+                                               transform=self.action_ax.transAxes)
         
-        for i in range(max_display):
-            if i < len(self.actions):
-                action = self.actions[i]
-                if action['type'] == 'move':
-                    text = f"{i+1}. Move {action['robot']} {action['from']}→{action['to']}"
-                else:
-                    text = f"{i+1}. {action['robot']} observe {action['location']}"
-            else:
-                text = ""
-            
+        # Create scroll buttons
+        scroll_btn_width = 0.03
+        scroll_btn_height = 0.2
+        
+        # Up scroll button
+        self.scroll_up_ax = plt.axes([0.95, 0.4, scroll_btn_width, scroll_btn_height])
+        self.scroll_up_btn = Button(self.scroll_up_ax, '▲', color='lightgray')
+        self.scroll_up_btn.on_clicked(self.scroll_up)
+        
+        # Down scroll button
+        self.scroll_down_ax = plt.axes([0.95, 0.15, scroll_btn_width, scroll_btn_height])
+        self.scroll_down_btn = Button(self.scroll_down_ax, '▼', color='lightgray')
+        self.scroll_down_btn.on_clicked(self.scroll_down)
+        
+        # Create text objects for visible actions
+        y_start = 0.88
+        y_step = 0.04
+        
+        for i in range(self.visible_actions):
             y_pos = y_start - (i * y_step)
-            txt_obj = self.action_ax.text(0.05, y_pos, text,
+            txt_obj = self.action_ax.text(0.05, y_pos, '',
                                          transform=self.action_ax.transAxes,
                                          fontsize=10, va='top')
             self.action_texts.append(txt_obj)
         
-        # Add scroll indicator if needed
-        if len(self.actions) > max_display:
-            self.action_ax.text(0.5, 0.02, f'... and {len(self.actions) - max_display} more actions',
-                               ha='center', va='bottom', fontsize=9, style='italic',
-                               transform=self.action_ax.transAxes)
+        # Initial update
+        self.update_action_list()
         
     def setup_gui(self):
         """Setup the figure with control panel"""
@@ -371,21 +384,43 @@ class PlanVisualizer:
         
         self.ax.set_title(title, fontsize=14, weight='bold')
         
+    def scroll_up(self, event=None):
+        """Scroll action list up"""
+        if self.scroll_position > 0:
+            self.scroll_position -= 1
+            self.update_action_list()
+            plt.draw()
+    
+    def scroll_down(self, event=None):
+        """Scroll action list down"""
+        max_scroll = max(0, len(self.actions) - self.visible_actions)
+        if self.scroll_position < max_scroll:
+            self.scroll_position += 1
+            self.update_action_list()
+            plt.draw()
+    
     def update_action_list(self):
-        """Update the action list to highlight current action"""
-        # Calculate visible range
-        max_display = min(25, len(self.actions))
+        """Update the action list display with current scroll position"""
+        # Update scroll info
+        start_idx = self.scroll_position + 1
+        end_idx = min(self.scroll_position + self.visible_actions, len(self.actions))
+        self.scroll_info.set_text(f'Showing {start_idx}-{end_idx} of {len(self.actions)}')
         
-        # Determine scroll position to keep current action visible
+        # Update button states
+        self.scroll_up_btn.color = 'lightblue' if self.scroll_position > 0 else 'lightgray'
+        max_scroll = max(0, len(self.actions) - self.visible_actions)
+        self.scroll_down_btn.color = 'lightblue' if self.scroll_position < max_scroll else 'lightgray'
+        
+        # Auto-scroll to current action if it's not visible
         if self.current_step >= 0:
-            # Calculate window to show current action
-            window_start = max(0, min(self.current_step - 5, len(self.actions) - max_display))
-        else:
-            window_start = 0
+            if self.current_step < self.scroll_position or self.current_step >= self.scroll_position + self.visible_actions:
+                # Center current action in view
+                self.scroll_position = max(0, min(self.current_step - self.visible_actions // 2, 
+                                                 len(self.actions) - self.visible_actions))
         
-        # Update each text object
+        # Update visible actions
         for i, txt_obj in enumerate(self.action_texts):
-            action_idx = window_start + i
+            action_idx = self.scroll_position + i
             
             if action_idx < len(self.actions):
                 action = self.actions[action_idx]
@@ -400,13 +435,17 @@ class PlanVisualizer:
                     txt_obj.set_weight('bold')
                     txt_obj.set_color('red')
                     txt_obj.set_fontsize(11)
+                    txt_obj.set_bbox(dict(boxstyle="round,pad=0.3", facecolor='yellow', alpha=0.3))
                 else:
                     txt_obj.set_text(f"  {text}")
                     txt_obj.set_weight('normal')
                     txt_obj.set_color('black')
                     txt_obj.set_fontsize(10)
+                    txt_obj.set_bbox(None)
+                
+                txt_obj.set_visible(True)
             else:
-                txt_obj.set_text("")
+                txt_obj.set_visible(False)
         
     def execute_action(self, action):
         """Execute a single action"""
@@ -427,35 +466,45 @@ class PlanVisualizer:
             if loc_coords:
                 self.explored.add(loc_coords)
     
-    def animate(self, frame):
-        """Animation function"""
-        # Only update if we're playing or manually stepping
-        if self.is_playing or frame == 0:
-            if frame > 0 and self.current_step < len(self.actions) - 1:
-                self.current_step += 1
-                self.execute_action(self.actions[self.current_step])
-            
-        self.draw_grid()
-        return []
+    def animate_step(self):
+        """Perform one animation step"""
+        if self.is_playing and self.current_step < len(self.actions) - 1:
+            self.step_forward()
+            # Schedule next step
+            self.timer = self.fig.canvas.new_timer(interval=int(1000 / self.animation_speed))
+            self.timer.add_callback(self.animate_step)
+            self.timer.start()
+        else:
+            # Stop playing at the end
+            if self.current_step >= len(self.actions) - 1:
+                self.is_playing = False
+                self.play_button.label.set_text('Play')
+                self.play_button.color = 'lightgreen'
+                plt.draw()
     
     def toggle_play(self, event=None):
         """Toggle play/pause"""
         self.is_playing = not self.is_playing
+        
         if self.is_playing:
             self.play_button.label.set_text('Pause')
             self.play_button.color = 'lightcoral'
+            
             # Start animation if at the end
             if self.current_step >= len(self.actions) - 1:
                 self.reset(None)
-            # Create new animation if needed
-            if not hasattr(self, 'animation') or self.animation is None:
-                self.create_animation()
-            self.animation.resume()
+            
+            # Start the animation
+            self.animate_step()
         else:
             self.play_button.label.set_text('Play')
             self.play_button.color = 'lightgreen'
-            if hasattr(self, 'animation') and self.animation is not None:
-                self.animation.pause()
+            
+            # Stop any running timer
+            if self.timer:
+                self.timer.stop()
+                self.timer = None
+        
         plt.draw()
     
     def step_forward(self, event=None):
@@ -471,48 +520,48 @@ class PlanVisualizer:
         if self.current_step >= 0:
             # Reset to initial state and replay up to current_step - 1
             target_step = self.current_step - 1
-            self.reset(None)
+            self.reset(None, update_display=False)
             for i in range(target_step + 1):
                 self.execute_action(self.actions[i])
             self.current_step = target_step
             self.draw_grid()
             plt.draw()
     
-    def reset(self, event=None):
+    def reset(self, event=None, update_display=True):
         """Reset to initial state"""
+        # Stop animation if playing
+        if self.is_playing:
+            self.is_playing = False
+            self.play_button.label.set_text('Play')
+            self.play_button.color = 'lightgreen'
+            if self.timer:
+                self.timer.stop()
+                self.timer = None
+        
         self.current_step = -1
         self.explored = set()
         # Reset robot positions
         for robot, pos in self.initial_positions.items():
             self.robot_positions[robot] = pos
-        self.draw_grid()
-        plt.draw()
+        
+        if update_display:
+            self.draw_grid()
+            plt.draw()
     
     def update_speed(self, val):
         """Update animation speed"""
         self.animation_speed = val
-        if self.animation:
-            # Convert speed to interval (milliseconds)
-            self.animation.interval = int(1000 / val)
-    
-    def create_animation(self):
-        """Create the animation object"""
-        self.animation = FuncAnimation(
-            self.fig, self.animate, 
-            frames=len(self.actions) + 1,
-            interval=int(1000 / self.animation_speed),
-            repeat=False, blit=False
-        )
-        if not self.is_playing:
-            self.animation.pause()
+        # If currently playing, restart timer with new speed
+        if self.is_playing and self.timer:
+            self.timer.stop()
+            self.animate_step()
     
     def run_interactive(self):
         """Run the interactive visualization"""
         # Initial draw
         self.draw_grid()
         
-        # Create animation but start paused
-        self.create_animation()
+        # No need to create FuncAnimation - we use timer-based approach
         
         # Adjust layout to prevent overlap
         plt.subplots_adjust(bottom=0.10, right=0.98, left=0.02, top=0.98)

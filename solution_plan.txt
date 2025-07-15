@@ -4,22 +4,62 @@ Search: lazy_wastar([lmcut()], w=3)
 === PLAN ===
 1. Move g from l11 to l21
 2. Move g from l21 to l22
-3. g observes l22
-4. b observes l11
-5. Move b from l11 to l12
-6. b observes l12
-7. Move g from l22 to l21
-8. Move b from l12 to l13
-9. g observes l21
-10. Move g from l21 to l31
-11. g observes l31
-12. Move g from l31 to l32
-13. g observes l32
-14. Move g from l32 to l33
-15. b observes l13
-16. Move b from l13 to l23
-17. b observes l23
-18. Move b from l23 to l33
-19. g observes l33
+3. Move b from l11 to l12
+4. g observes l22
+5. Move g from l22 to l23
+6. g observes l23
+7. b observes l12
+8. Move g from l23 to l33
+9. Move b from l12 to l11
+10. g observes l33
+11. Move g from l33 to l43
+12. g observes l43
+13. Move g from l43 to l44
+14. g observes l44
+15. Move g from l44 to l54
+16. Move b from l11 to l21
+17. b observes l21
+18. Move b from l21 to l11
+19. b observes l11
+20. Move b from l11 to l12
+21. Move b from l12 to l13
+22. b observes l13
+23. Move b from l13 to l14
+24. b observes l14
+25. Move g from l54 to l55
+26. Move b from l14 to l15
+27. b observes l15
+28. Move b from l15 to l25
+29. b observes l25
+30. Move b from l25 to l24
+31. b observes l24
+32. Move b from l24 to l34
+33. b observes l34
+34. Move b from l34 to l35
+35. b observes l35
+36. Move b from l35 to l45
+37. Move b from l45 to l44
+38. Move b from l44 to l43
+39. Move b from l43 to l42
+40. b observes l42
+41. Move b from l42 to l32
+42. b observes l32
+43. Move b from l32 to l31
+44. b observes l31
+45. Move b from l31 to l41
+46. b observes l41
+47. Move b from l41 to l51
+48. b observes l51
+49. Move b from l51 to l52
+50. b observes l52
+51. Move b from l52 to l53
+52. b observes l53
+53. Move b from l53 to l54
+54. b observes l54
+55. Move b from l54 to l55
+56. Move g from l55 to l45
+57. g observes l45
+58. Move g from l45 to l55
+59. g observes l55
 
-[t=0.005378s, 10224 KB] Plan cost: 14
+[t=3.628293s, 24644 KB] Plan cost: 38

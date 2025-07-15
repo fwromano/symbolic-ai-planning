@@ -356,7 +356,7 @@ def generate_problem_from_config(config):
 def create_default_config():
     """Create default configuration file"""
     config = """# Exploration problem configuration
-grid_size: 3
+grid_size: 5
 
 robots:
   B:
@@ -385,8 +385,8 @@ terrain_map:
 goal:
   all_explored: true
   robot_positions:
-    B: [3, 3]
-    G: [3, 3]
+    B: [5, 5]
+    G: [5, 5]
 """
     with open('terrain_config.yaml', 'w') as f:
         f.write(config)

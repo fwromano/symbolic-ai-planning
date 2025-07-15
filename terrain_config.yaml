@@ -1,5 +1,5 @@
 # Exploration problem configuration
-grid_size: 3
+grid_size: 5
 
 robots:
   B:
@@ -28,5 +28,5 @@ terrain_map:
 goal:
   all_explored: true
   robot_positions:
-    B: [3, 3]
-    G: [3, 3]
+    B: [5, 5]
+    G: [5, 5]
